@@ -1,0 +1,133 @@
+// Database schema for Vercel Postgres with Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String
+  taxId         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  projects  Project[]
+  clients   Client[]
+  invoices  Invoice[]
+  tasks     Task[]
+  notes     CanvasNote[]
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  client    String
+  status    String   // planning, in-progress, review, completed
+  startDate DateTime
+  endDate   DateTime
+  budget    Float
+  color     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  tasks     Task[]
+  invoices  Invoice[]
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   // todo, in-progress, done
+  priority    String   // low, medium, high
+  dueDate     DateTime
+  assignee    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String
+  company   String
+  address   String?
+  taxId     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  invoices  Invoice[]
+}
+
+model Invoice {
+  id        String   @id @default(cuid())
+  number    String   @unique
+  date      DateTime
+  dueDate   DateTime
+  subtotal  Float
+  tax       Float
+  total     Float
+  status    String   // draft, sent, paid, overdue
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  
+  items     InvoiceItem[]
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  description String
+  quantity    Float
+  price       Float
+  total       Float
+
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model CanvasNote {
+  id        String   @id @default(cuid())
+  content   String
+  x         Float
+  y         Float
+  color     String
+  width     Float
+  height    Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
